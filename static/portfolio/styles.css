@@ -12,14 +12,16 @@ header nav a span{display:block}html[lang="zh-CN"] header nav .nav-latin{transfo
 
 @media(min-width:701px){
 .project-grid{row-gap:0}
-.project-grid .project{display:grid;grid-template-rows:subgrid;grid-row:span 7;row-gap:0;align-items:start}
+.project-grid .project{display:grid;grid-template-rows:subgrid;grid-row:span 6;row-gap:0;align-items:start}
 .project-grid .project>.card-top{grid-row:1}
 .project-grid .project>h3{grid-row:2}
 .project-grid .project>.subtitle{grid-row:3}
 .project-grid .project>p:not(.subtitle){grid-row:4}
 .project-grid .project>.tags{grid-row:5}
-.project-grid .project>details{grid-row:6}
-.project-grid .project>.repo{grid-row:7;justify-self:start}
+.project-grid .project>.project-footer{grid-row:6}
+.project-footer>.repo{align-self:start}
 }
 
-@media(min-width:701px){.project-grid .project>details{align-self:stretch;position:relative}.project-grid details[open]:has(>a){padding-bottom:44px}.project-grid details[open]>a{position:absolute;bottom:0;left:0}}
+
+
+.project-footer{display:flex;flex-direction:column;align-self:start;min-width:0}

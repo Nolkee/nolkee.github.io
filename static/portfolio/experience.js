@@ -7,8 +7,14 @@
   const cover = dialog.querySelector('.dialog-cover');
   const title = dialog.querySelector('#album-dialog-title');
   const artist = dialog.querySelector('.dialog-artist');
+  const audio = dialog.querySelector('.preview-audio');
+  const playbackError = dialog.querySelector('.preview-error');
+  let playbackRequest = 0;
   let selected = 0, trigger = null, drag = null;
-  function renderAlbum(index) {
+  function renderAlbum(index, autoplay = false) {
+    const request = ++playbackRequest;
+    audio.pause();
+    playbackError.hidden = true;
     selected = (index + cards.length) % cards.length;
     const card = cards[selected];
     cover.src = card.querySelector('img').src;
@@ -16,10 +22,16 @@
     dialog.querySelector('.dialog-source').href = card.dataset.source;
     title.textContent = card.querySelector('strong').textContent;
     artist.textContent = card.querySelector('.album-caption > span').textContent;
+    dialog.querySelector('.preview-track').textContent = card.dataset.track;
+    dialog.querySelector('.preview-store').href = card.dataset.store;
+    audio.src = card.dataset.preview;
     dialog.querySelector('.album-position').textContent = `${selected + 1} / ${cards.length}`;
+    if (autoplay) audio.play().catch(error => {
+      if (request === playbackRequest && error.name !== 'AbortError') playbackError.hidden = false;
+    });
   }
   function showAlbum(index) {
-    renderAlbum(index);
+    renderAlbum(index, true);
     trigger = cards[index];
     dialog.showModal();
     document.body.classList.add('dialog-open');
@@ -27,6 +39,8 @@
   }
   dialog.querySelector('.dialog-close').addEventListener('click', () => dialog.close());
   dialog.addEventListener('close', () => {
+    ++playbackRequest;
+    audio.pause();
     document.body.classList.remove('dialog-open');
     trigger?.focus({preventScroll: true});
   });
@@ -34,10 +48,13 @@
     const rect = dialog.getBoundingClientRect();
     if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
   }});
-  dialog.querySelectorAll('[data-album-step]').forEach(button => button.addEventListener('click', () => renderAlbum(selected + Number(button.dataset.albumStep))));
+  audio.addEventListener('error', () => {if (dialog.open) playbackError.hidden = false;});
+  audio.addEventListener('playing', () => {playbackError.hidden = true;});
+  dialog.querySelectorAll('[data-album-step]').forEach(button => button.addEventListener('click', () => renderAlbum(selected + Number(button.dataset.albumStep), true)));
   dialog.addEventListener('keydown', event => {
+    if (event.target === audio) return;
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-      event.preventDefault();renderAlbum(selected + (event.key === 'ArrowLeft' ? -1 : 1));
+      event.preventDefault();renderAlbum(selected + (event.key === 'ArrowLeft' ? -1 : 1), true);
     }
   });
   cards.forEach((card,index) => {

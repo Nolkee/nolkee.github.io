@@ -13,6 +13,7 @@
     const card = cards[selected];
     cover.src = card.querySelector('img').src;
     cover.alt = card.querySelector('img').alt;
+    dialog.querySelector('.dialog-source').href = card.dataset.source;
     title.textContent = card.querySelector('strong').textContent;
     artist.textContent = card.querySelector('.album-caption > span').textContent;
     dialog.querySelector('.album-position').textContent = `${selected + 1} / ${cards.length}`;

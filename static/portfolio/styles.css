@@ -23,3 +23,12 @@ header nav a span{display:block}html[lang="zh-CN"] header nav .nav-latin{transfo
 }
 
 @media(min-width:701px){.project-grid .project>details{align-self:stretch;position:relative}.project-grid details[open]:has(>a){padding-bottom:44px}.project-grid details[open]>a{position:absolute;bottom:0;left:0}}
+
+.dialog-source{display:inline-block;margin-top:24px;font-size:.875rem;border-bottom:1px solid var(--blue);color:var(--blue);padding:8px 0}
+@media(min-width:701px){
+.album-board{height:760px}.album-card{width:19%;max-width:220px}
+.album-card:nth-of-type(1){left:3%;top:7%}.album-card:nth-of-type(2){left:27%;top:3%}.album-card:nth-of-type(3){left:51%;top:8%}.album-card:nth-of-type(4){left:75%;top:5%}
+.album-card:nth-of-type(5){left:12%;top:54%}.album-card:nth-of-type(6){left:40%;top:51%}.album-card:nth-of-type(7){left:68%;top:55%}
+.album-caption{font-size:.8125rem}
+}
+@media(min-width:701px) and (max-width:1000px){.album-board{height:660px}.album-card{width:20%}.album-card:nth-of-type(4){left:76%}.album-card:nth-of-type(7){left:69%;top:53%}}

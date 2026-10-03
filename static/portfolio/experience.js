@@ -72,7 +72,7 @@
   mobile.addEventListener('change',resetCards);
   let ticking=false;
   const progress=document.querySelector('.reading-progress');
-  function updateScroll(){const height=document.documentElement.scrollHeight-innerHeight;progress.style.transform=`scaleX(${height>0?scrollY/height:0})`;const sections=[...document.querySelectorAll('#projects,#about,#life')];
+  function updateScroll(){const height=document.documentElement.scrollHeight-innerHeight;progress.style.transform=`scaleX(${height>0?scrollY/height:0})`;const sections=[...document.querySelectorAll('#about,#projects,#life')];
     const active=sections.filter(section=>section.getBoundingClientRect().top<=innerHeight*.3).at(-1);
     document.querySelectorAll('header nav a[href^="#"]').forEach(link=>{if(active && link.hash===`#${active.id}`)link.setAttribute('aria-current','location');else link.removeAttribute('aria-current');});
     ticking=false;}

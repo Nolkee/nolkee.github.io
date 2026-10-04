@@ -9,12 +9,56 @@
   const artist = dialog.querySelector('.dialog-artist');
   const audio = dialog.querySelector('.player-audio');
   const playbackError = dialog.querySelector('.player-error');
+  const status = dialog.querySelector('.playback-status');
+  const playbackState = dialog.querySelector('.playback-state');
+  const stateLabels = {
+    loading: ['正在加载', 'Loading'], playing: ['正在播放', 'Playing'],
+    paused: ['已暂停', 'Paused'], ended: ['播放结束', 'Finished'],
+    error: ['播放失败', 'Unavailable'], idle: ['准备播放', 'Ready to play']
+  };
+  let soundContext = null, soundGain = null;
+  function setPlaybackState(state) {
+    const [zh, en] = stateLabels[state];
+    status.dataset.zh = zh; status.dataset.en = en;
+    status.textContent = document.documentElement.lang === 'en' ? en : zh;
+    playbackState.dataset.state = state;
+    cards.forEach((card, index) => {
+      card.classList.toggle('is-playing', dialog.open && index === selected && state === 'playing');
+    });
+  }
+  // Connect during the click gesture so Safari can unlock audio too. Keep the
+  // native volume control untouched; the gain only softens each song's start.
+  function prepareSound() {
+    try {
+      const Context = window.AudioContext || window.webkitAudioContext;
+      if (!Context) return;
+      if (!soundContext) {
+        soundContext = new Context();
+        soundGain = soundContext.createGain();
+        soundContext.createMediaElementSource(audio).connect(soundGain);
+        soundGain.connect(soundContext.destination);
+      }
+      soundContext.resume().then(() => {
+        if (dialog.open && !audio.paused) softenStart();
+      }).catch(() => {});
+      soundGain.gain.cancelScheduledValues(soundContext.currentTime);
+      soundGain.gain.setValueAtTime(0, soundContext.currentTime);
+    } catch { /* Browsers without Web Audio retain native playback. */ }
+  }
+  function softenStart() {
+    if (!soundGain || soundContext.state !== 'running') return;
+    const now = soundContext.currentTime;
+    soundGain.gain.cancelScheduledValues(now);
+    soundGain.gain.setValueAtTime(0, now);
+    soundGain.gain.linearRampToValueAtTime(1, now + .22);
+  }
   let playbackRequest = 0;
   let selected = 0, trigger = null, drag = null;
   function renderAlbum(index, autoplay = false) {
     const request = ++playbackRequest;
     audio.pause();
     playbackError.hidden = true;
+    prepareSound();
     selected = (index + cards.length) % cards.length;
     const card = cards[selected];
     cover.src = card.querySelector('img').src;
@@ -26,9 +70,14 @@
     artist.textContent = card.querySelector('.album-caption > span').textContent;
     dialog.querySelector('.player-track').textContent = card.dataset.track;
     audio.src = card.dataset.audio;
+    setPlaybackState('loading');
+    dialog.scrollTop = 0;
     dialog.querySelector('.album-position').textContent = `${selected + 1} / ${cards.length}`;
     if (autoplay) audio.play().catch(error => {
-      if (request === playbackRequest && error.name !== 'AbortError') playbackError.hidden = false;
+      if (request === playbackRequest && error.name !== 'AbortError' && dialog.open) {
+        playbackError.hidden = false;
+        setPlaybackState('error');
+      }
     });
   }
   function showAlbum(index) {
@@ -42,6 +91,7 @@
   dialog.addEventListener('close', () => {
     ++playbackRequest;
     audio.pause();
+    setPlaybackState('idle');
     document.body.classList.remove('dialog-open');
     trigger?.focus({preventScroll: true});
   });
@@ -49,8 +99,18 @@
     const rect = dialog.getBoundingClientRect();
     if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
   }});
-  audio.addEventListener('error', () => {if (dialog.open) playbackError.hidden = false;});
-  audio.addEventListener('playing', () => {playbackError.hidden = true;});
+  audio.addEventListener('error', () => {if (dialog.open) {playbackError.hidden = false;setPlaybackState('error');}});
+  audio.addEventListener('playing', () => {
+    // A pending play must never restart audio after the dialog has closed.
+    if (!dialog.open) {audio.pause();return;}
+    playbackError.hidden = true;softenStart();setPlaybackState('playing');
+  });
+  audio.addEventListener('pause', () => {
+    if (dialog.open && !audio.ended && audio.paused && audio.readyState >= 2) setPlaybackState('paused');
+  });
+  audio.addEventListener('waiting', () => {if (dialog.open && !audio.paused) setPlaybackState('loading');});
+  audio.addEventListener('ended', () => {if (dialog.open) setPlaybackState('ended');});
+  dialog.querySelectorAll('.platform-links a').forEach(link => link.addEventListener('click', () => audio.pause()));
   dialog.querySelectorAll('[data-album-step]').forEach(button => button.addEventListener('click', () => renderAlbum(selected + Number(button.dataset.albumStep), true)));
   dialog.addEventListener('keydown', event => {
     if (event.target === audio) return;

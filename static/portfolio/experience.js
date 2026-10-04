@@ -19,7 +19,9 @@
     const card = cards[selected];
     cover.src = card.querySelector('img').src;
     cover.alt = card.querySelector('img').alt;
-    dialog.querySelector('.dialog-source').href = card.dataset.source;
+    dialog.querySelector('[data-platform=apple]').href = card.dataset.source;
+    dialog.querySelector('[data-platform=netease]').href = card.dataset.netease;
+    dialog.querySelector('[data-platform=spotify]').href = card.dataset.spotify;
     title.textContent = card.querySelector('strong').textContent;
     artist.textContent = card.querySelector('.album-caption > span').textContent;
     dialog.querySelector('.player-track').textContent = card.dataset.track;

@@ -1,7 +1,6 @@
 {
   "permissions": {
     "allow": [
-      "Bash(hugo:*)",
       "Bash(brew install:*)",
       "Bash(cat:*)",
       "Bash(git clone:*)"

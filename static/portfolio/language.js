@@ -1,7 +1,7 @@
 (() => {
   const buttons = [...document.querySelectorAll('[data-language]')];
   const texts = [...document.querySelectorAll('[data-zh][data-en]')];
-  const title = {zh:'nolkee — 开发、研究与一点好奇心',en:'nolkee — Development, research & curiosity'};
+  const title = {zh:'nolkee — 开发、研究与好奇心',en:'nolkee — Development, research & curiosity'};
   const description = {zh:'nolkee / Jiabin Yin 的个人作品集：全栈开发、AI Agent、低光图像增强研究与数据分析。',en:'The portfolio of nolkee / Jiabin Yin: full-stack development, AI agents, low-light image enhancement research and data analysis.'};
   const attributes = [
     ['nav','aria-label',{zh:'主导航',en:'Main navigation'}],

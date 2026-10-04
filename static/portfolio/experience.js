@@ -11,12 +11,80 @@
   const playbackError = dialog.querySelector('.player-error');
   const status = dialog.querySelector('.playback-status');
   const playbackState = dialog.querySelector('.playback-state');
+  const toggle = dialog.querySelector('.player-toggle');
+  const seek = dialog.querySelector('.player-seek');
+  const elapsed = dialog.querySelector('.elapsed');
+  const duration = dialog.querySelector('.duration');
+  const volume = dialog.querySelector('.volume-slider');
+  const mute = dialog.querySelector('.player-mute');
+  const speedMenu = dialog.querySelector('.speed-menu');
+  let rate = 1, lastVolume = 100, scrubbing = false;
   const stateLabels = {
     loading: ['正在加载', 'Loading'], playing: ['正在播放', 'Playing'],
     paused: ['已暂停', 'Paused'], ended: ['播放结束', 'Finished'],
     error: ['播放失败', 'Unavailable'], idle: ['准备播放', 'Ready to play']
   };
-  let soundContext = null, soundGain = null;
+  let soundContext = null, soundGain = null, volumeGain = null;
+  function syncToggle() {
+    const playing = !audio.paused && !audio.ended;
+    toggle.classList.toggle('is-playing', playing);
+    toggle.setAttribute('aria-label', playing ? '暂停 / Pause' : '播放 / Play');
+  }
+  function formatTime(value) {
+    const seconds = Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+  }
+  function updateTimeline() {
+    const length = Number.isFinite(audio.duration) ? audio.duration : 0;
+    seek.disabled = !length;
+    seek.max = length;
+    if (!scrubbing) seek.value = audio.currentTime || 0;
+    seek.style.setProperty('--fill', `${length ? Number(seek.value) / length * 100 : 0}%`);
+    elapsed.textContent = formatTime(scrubbing ? Number(seek.value) : audio.currentTime);
+    duration.textContent = formatTime(length);
+  }
+  function updateVolume() {
+    const value = Number(volume.value) / 100;
+    audio.muted = value === 0;
+    if (volumeGain) volumeGain.gain.value = value;
+    else audio.volume = value;
+    mute.setAttribute('aria-pressed', String(!value));
+    mute.setAttribute('aria-label', !value ? '取消静音 / Unmute' : '静音 / Mute');
+    volume.style.setProperty('--fill', `${value * 100}%`);
+  }
+  toggle.addEventListener('click', () => {
+    if (!audio.paused) {audio.pause();return;}
+    prepareSound();
+    audio.play().catch(() => {if (dialog.open) {playbackError.hidden = false;setPlaybackState('error');}});
+  });
+  seek.addEventListener('pointerdown', () => {scrubbing = true;});
+  seek.addEventListener('input', () => {
+    if (Number.isFinite(audio.duration)) audio.currentTime = Number(seek.value);
+    updateTimeline();
+  });
+  function finishSeek() {scrubbing = false;updateTimeline();}
+  seek.addEventListener('change', finishSeek);
+  seek.addEventListener('pointerup', finishSeek);
+  seek.addEventListener('pointercancel', finishSeek);
+  volume.addEventListener('input', () => {
+    if (Number(volume.value)) lastVolume = Number(volume.value);
+    updateVolume();
+  });
+  mute.addEventListener('click', () => {
+    if (Number(volume.value)) {lastVolume = Number(volume.value);volume.value = 0;}
+    else volume.value = lastVolume;
+    updateVolume();
+  });
+  dialog.querySelectorAll('[data-rate]').forEach(button => button.addEventListener('click', () => {
+    rate = Number(button.dataset.rate);audio.playbackRate = rate;
+    dialog.querySelector('.speed-value').textContent = `${rate}×`;
+    dialog.querySelectorAll('[data-rate]').forEach(option => option.setAttribute('aria-pressed', String(option === button)));
+    speedMenu.open = false;speedMenu.querySelector('summary').focus();
+  }));
+  dialog.addEventListener('click', event => {if (!speedMenu.contains(event.target)) speedMenu.open = false;});
+  ['timeupdate', 'loadedmetadata', 'durationchange', 'emptied', 'seeked'].forEach(event => audio.addEventListener(event, updateTimeline));
+  ['play', 'pause', 'ended'].forEach(event => audio.addEventListener(event, syncToggle));
+  updateVolume();syncToggle();
   function setPlaybackState(state) {
     const [zh, en] = stateLabels[state];
     status.dataset.zh = zh; status.dataset.en = en;
@@ -27,7 +95,7 @@
     });
   }
   // Connect during the click gesture so Safari can unlock audio too. Keep the
-  // native volume control untouched; the gain only softens each song's start.
+  // volume independent of the short fade at each song's start.
   function prepareSound() {
     try {
       const Context = window.AudioContext || window.webkitAudioContext;
@@ -36,7 +104,9 @@
         soundContext = new Context();
         soundGain = soundContext.createGain();
         soundContext.createMediaElementSource(audio).connect(soundGain);
-        soundGain.connect(soundContext.destination);
+        volumeGain = soundContext.createGain();
+        soundGain.connect(volumeGain);volumeGain.connect(soundContext.destination);
+        audio.volume = 1;updateVolume();
       }
       soundContext.resume().then(() => {
         if (dialog.open && !audio.paused) softenStart();
@@ -56,6 +126,7 @@
   let selected = 0, trigger = null, drag = null;
   function renderAlbum(index, autoplay = false) {
     const request = ++playbackRequest;
+    scrubbing = false;speedMenu.open = false;
     audio.pause();
     playbackError.hidden = true;
     prepareSound();
@@ -70,6 +141,7 @@
     artist.textContent = card.querySelector('.album-caption > span').textContent;
     dialog.querySelector('.player-track').textContent = card.dataset.track;
     audio.src = card.dataset.audio;
+    audio.playbackRate = rate;updateTimeline();
     setPlaybackState('loading');
     dialog.scrollTop = 0;
     dialog.querySelector('.album-position').textContent = `${selected + 1} / ${cards.length}`;
@@ -92,6 +164,7 @@
     ++playbackRequest;
     audio.pause();
     setPlaybackState('idle');
+    speedMenu.open = false;
     document.body.classList.remove('dialog-open');
     trigger?.focus({preventScroll: true});
   });
@@ -113,6 +186,10 @@
   dialog.querySelectorAll('.platform-links a').forEach(link => link.addEventListener('click', () => audio.pause()));
   dialog.querySelectorAll('[data-album-step]').forEach(button => button.addEventListener('click', () => renderAlbum(selected + Number(button.dataset.albumStep), true)));
   dialog.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && speedMenu.open) {
+      event.preventDefault();speedMenu.open = false;speedMenu.querySelector('summary').focus();return;
+    }
+    if (event.target.closest('.music-controls')) return;
     if (event.target === audio) return;
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
       event.preventDefault();renderAlbum(selected + (event.key === 'ArrowLeft' ? -1 : 1), true);

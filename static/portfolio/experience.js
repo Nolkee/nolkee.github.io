@@ -226,16 +226,57 @@
   function resetCards(){cards.forEach(card=>{card.style.removeProperty('--dx');card.style.removeProperty('--dy');delete card.dataset.dx;delete card.dataset.dy;});}
   document.querySelector('.album-reset').addEventListener('click',resetCards);
   mobile.addEventListener('change',resetCards);
-  let ticking=false;
-  const progress=document.querySelector('.reading-progress');
-  function updateScroll(){const height=document.documentElement.scrollHeight-innerHeight;progress.style.transform=`scaleX(${height>0?scrollY/height:0})`;const sections=[...document.querySelectorAll('#about,#projects,#life')];
-    const active=sections.filter(section=>section.getBoundingClientRect().top<=innerHeight*.3).at(-1);
-    document.querySelectorAll('header nav a[href^="#"]').forEach(link=>{if(active && link.hash===`#${active.id}`)link.setAttribute('aria-current','location');else link.removeAttribute('aria-current');});
-    ticking=false;}
-  addEventListener('scroll',()=>{if(!ticking){ticking=true;requestAnimationFrame(updateScroll);}},{passive:true});
-  addEventListener('resize',updateScroll);updateScroll();
-  if(!reduced.matches){
-    const reveal=new IntersectionObserver(entries=>{entries.forEach(entry=>{if(entry.isIntersecting){entry.target.animate([{opacity:.35,transform:'translateY(16px)'},{opacity:1,transform:'translateY(0)'}],{duration:550,easing:'cubic-bezier(.2,.7,.2,1)'});reveal.unobserve(entry.target);}});},{threshold:.1});
-    document.querySelectorAll('.project,.about h2,.section-label').forEach(element=>reveal.observe(element));
+  // Scroll stays native. Visual progress is derived from document positions,
+  // so reversing direction reverses the transition without a queued animation.
+  const progress = document.querySelector('.reading-progress');
+  const sections = [...document.querySelectorAll('#about,#projects,#life')];
+  const motionNodes = [...document.querySelectorAll('.hero-grid h1,.hero-side,.about h2,.about-copy,.section-label,.project,.album-board,.closing p')];
+  const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));
+  let frame = 0, measurements = [];
+  function measureMotion() {
+    // Clear translations before measuring to prevent feedback into the geometry.
+    motionNodes.forEach(node => {node.style.removeProperty('translate');});
+    measurements = motionNodes.map(node => {
+      const rect = node.getBoundingClientRect();
+      return {node, top: rect.top + scrollY, height: rect.height};
+    });
+    requestScroll();
   }
+  function updateScroll() {
+    frame = 0;
+    const vh = innerHeight, y = scrollY;
+    const height = document.documentElement.scrollHeight - vh;
+    progress.style.transform = `scaleX(${height > 0 ? clamp(y / height) : 0})`;
+    const active = sections.filter(section => section.getBoundingClientRect().top <= vh * .3).at(-1);
+    document.querySelectorAll('header nav a[href^="#"]').forEach(link => {
+      if (active && link.hash === `#${active.id}`) link.setAttribute('aria-current','location');
+      else link.removeAttribute('aria-current');
+    });
+    measurements.forEach(({node, top, height}) => {
+      if (reduced.matches) {node.style.removeProperty('translate');node.style.removeProperty('opacity');return;}
+      const t = top - y;
+      const entering = clamp((t - vh * .58) / (vh * .42));
+      const leaving = clamp((-t - height * .55) / (vh * .65));
+      // Ease the edge of each chapter; keep the reading area fully opaque.
+      const ease = x => x * x * (3 - 2 * x);
+      const e = ease(entering), l = ease(leaving);
+      const travel = mobile.matches ? 24 : 58;
+      node.style.translate = `0 ${(e - l) * travel}px`;
+      node.style.opacity = String(1 - .65 * e - .4 * l);
+    });
+    if (!reduced.matches) {
+      document.querySelector('.hero-grid h1').style.translate = `0 ${-Math.min(y, vh) * .10}px`;
+      board.style.setProperty('--wall-travel', `${clamp((board.getBoundingClientRect().top - vh * .35) / vh, -1, 1) * 26}px`);
+    } else board.style.removeProperty('--wall-travel');
+  }
+  function requestScroll() {if (!frame) frame = requestAnimationFrame(updateScroll);}
+  addEventListener('scroll', requestScroll, {passive:true});
+  addEventListener('resize', measureMotion);
+  reduced.addEventListener('change', measureMotion);
+  // Expanding project notes and switching language both change chapter geometry.
+  const geometry = new ResizeObserver(measureMotion);
+  document.querySelectorAll('main > section').forEach(section => geometry.observe(section));
+  document.querySelectorAll('.project details').forEach(details => details.addEventListener('toggle', measureMotion));
+  document.fonts.ready.then(measureMotion);
+  measureMotion();
 })();

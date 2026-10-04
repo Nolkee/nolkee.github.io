@@ -7,8 +7,8 @@
   const cover = dialog.querySelector('.dialog-cover');
   const title = dialog.querySelector('#album-dialog-title');
   const artist = dialog.querySelector('.dialog-artist');
-  const audio = dialog.querySelector('.preview-audio');
-  const playbackError = dialog.querySelector('.preview-error');
+  const audio = dialog.querySelector('.player-audio');
+  const playbackError = dialog.querySelector('.player-error');
   let playbackRequest = 0;
   let selected = 0, trigger = null, drag = null;
   function renderAlbum(index, autoplay = false) {
@@ -22,9 +22,8 @@
     dialog.querySelector('.dialog-source').href = card.dataset.source;
     title.textContent = card.querySelector('strong').textContent;
     artist.textContent = card.querySelector('.album-caption > span').textContent;
-    dialog.querySelector('.preview-track').textContent = card.dataset.track;
-    dialog.querySelector('.preview-store').href = card.dataset.store;
-    audio.src = card.dataset.preview;
+    dialog.querySelector('.player-track').textContent = card.dataset.track;
+    audio.src = card.dataset.audio;
     dialog.querySelector('.album-position').textContent = `${selected + 1} / ${cards.length}`;
     if (autoplay) audio.play().catch(error => {
       if (request === playbackRequest && error.name !== 'AbortError') playbackError.hidden = false;

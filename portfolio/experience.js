@@ -17,8 +17,7 @@
   const duration = dialog.querySelector('.duration');
   const volume = dialog.querySelector('.volume-slider');
   const mute = dialog.querySelector('.player-mute');
-  const speedMenu = dialog.querySelector('.speed-menu');
-  let rate = 1, lastVolume = 100, scrubbing = false;
+  let lastVolume = 100, scrubbing = false;
   const stateLabels = {
     loading: ['正在加载', 'Loading'], playing: ['正在播放', 'Playing'],
     paused: ['已暂停', 'Paused'], ended: ['播放结束', 'Finished'],
@@ -38,9 +37,9 @@
     const length = Number.isFinite(audio.duration) ? audio.duration : 0;
     seek.disabled = !length;
     seek.max = length;
-    if (!scrubbing) seek.value = audio.currentTime || 0;
+    if (!scrubbing && !audio.seeking) seek.value = audio.currentTime || 0;
     seek.style.setProperty('--fill', `${length ? Number(seek.value) / length * 100 : 0}%`);
-    elapsed.textContent = formatTime(scrubbing ? Number(seek.value) : audio.currentTime);
+    elapsed.textContent = formatTime(scrubbing || audio.seeking ? Number(seek.value) : audio.currentTime);
     duration.textContent = formatTime(length);
   }
   function updateVolume() {
@@ -51,6 +50,7 @@
     mute.setAttribute('aria-pressed', String(!value));
     mute.setAttribute('aria-label', !value ? '取消静音 / Unmute' : '静音 / Mute');
     volume.style.setProperty('--fill', `${value * 100}%`);
+    dialog.querySelector('.volume-value').textContent = `${Math.round(value * 100)}%`;
   }
   toggle.addEventListener('click', () => {
     if (!audio.paused) {audio.pause();return;}
@@ -59,13 +59,22 @@
   });
   seek.addEventListener('pointerdown', () => {scrubbing = true;});
   seek.addEventListener('input', () => {
-    if (Number.isFinite(audio.duration)) audio.currentTime = Number(seek.value);
+    // Preview while dragging; commit once on release (or a keyboard change).
+    scrubbing = true;
     updateTimeline();
   });
-  function finishSeek() {scrubbing = false;updateTimeline();}
-  seek.addEventListener('change', finishSeek);
-  seek.addEventListener('pointerup', finishSeek);
-  seek.addEventListener('pointercancel', finishSeek);
+  function commitSeek() {
+    if (!scrubbing) return;
+    const target = Number(seek.value);
+    scrubbing = false;
+    if (Number.isFinite(audio.duration)) {
+      audio.currentTime = Math.max(0, Math.min(target, audio.duration));
+    }
+    updateTimeline();
+  }
+  seek.addEventListener('change', commitSeek);
+  seek.addEventListener('pointerup', commitSeek);
+  seek.addEventListener('pointercancel', () => {scrubbing = false;updateTimeline();});
   volume.addEventListener('input', () => {
     if (Number(volume.value)) lastVolume = Number(volume.value);
     updateVolume();
@@ -75,13 +84,6 @@
     else volume.value = lastVolume;
     updateVolume();
   });
-  dialog.querySelectorAll('[data-rate]').forEach(button => button.addEventListener('click', () => {
-    rate = Number(button.dataset.rate);audio.playbackRate = rate;
-    dialog.querySelector('.speed-value').textContent = `${rate}×`;
-    dialog.querySelectorAll('[data-rate]').forEach(option => option.setAttribute('aria-pressed', String(option === button)));
-    speedMenu.open = false;speedMenu.querySelector('summary').focus();
-  }));
-  dialog.addEventListener('click', event => {if (!speedMenu.contains(event.target)) speedMenu.open = false;});
   ['timeupdate', 'loadedmetadata', 'durationchange', 'emptied', 'seeked'].forEach(event => audio.addEventListener(event, updateTimeline));
   ['play', 'pause', 'ended'].forEach(event => audio.addEventListener(event, syncToggle));
   updateVolume();syncToggle();
@@ -126,7 +128,7 @@
   let selected = 0, trigger = null, drag = null;
   function renderAlbum(index, autoplay = false) {
     const request = ++playbackRequest;
-    scrubbing = false;speedMenu.open = false;
+    scrubbing = false;
     audio.pause();
     playbackError.hidden = true;
     prepareSound();
@@ -141,7 +143,7 @@
     artist.textContent = card.querySelector('.album-caption > span').textContent;
     dialog.querySelector('.player-track').textContent = card.dataset.track;
     audio.src = card.dataset.audio;
-    audio.playbackRate = rate;updateTimeline();
+    audio.playbackRate = 1;updateTimeline();
     setPlaybackState('loading');
     dialog.scrollTop = 0;
     dialog.querySelector('.album-position').textContent = `${selected + 1} / ${cards.length}`;
@@ -159,18 +161,27 @@
     document.body.classList.add('dialog-open');
     dialog.querySelector('.dialog-close').focus();
   }
-  dialog.querySelector('.dialog-close').addEventListener('click', () => dialog.close());
-  dialog.addEventListener('close', () => {
+  function stopPlayback() {
     ++playbackRequest;
     audio.pause();
     setPlaybackState('idle');
-    speedMenu.open = false;
     document.body.classList.remove('dialog-open');
+  }
+  function closeAlbum() {
+    // Native close events are queued; silence audio during the user's gesture.
+    stopPlayback();
+    dialog.close();
+  }
+  dialog.querySelector('.dialog-close').addEventListener('click', closeAlbum);
+  dialog.addEventListener('cancel', event => {event.preventDefault();closeAlbum();});
+  dialog.addEventListener('close', () => {
+    if (dialog.open) return;
+    stopPlayback();
     trigger?.focus({preventScroll: true});
   });
   dialog.addEventListener('click', event => {if (event.target === dialog) {
     const rect = dialog.getBoundingClientRect();
-    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
+    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closeAlbum();
   }});
   audio.addEventListener('error', () => {if (dialog.open) {playbackError.hidden = false;setPlaybackState('error');}});
   audio.addEventListener('playing', () => {
@@ -186,9 +197,6 @@
   dialog.querySelectorAll('.platform-links a').forEach(link => link.addEventListener('click', () => audio.pause()));
   dialog.querySelectorAll('[data-album-step]').forEach(button => button.addEventListener('click', () => renderAlbum(selected + Number(button.dataset.albumStep), true)));
   dialog.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && speedMenu.open) {
-      event.preventDefault();speedMenu.open = false;speedMenu.querySelector('summary').focus();return;
-    }
     if (event.target.closest('.music-controls')) return;
     if (event.target === audio) return;
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
@@ -226,57 +234,77 @@
   function resetCards(){cards.forEach(card=>{card.style.removeProperty('--dx');card.style.removeProperty('--dy');delete card.dataset.dx;delete card.dataset.dy;});}
   document.querySelector('.album-reset').addEventListener('click',resetCards);
   mobile.addEventListener('change',resetCards);
-  // Scroll stays native. Visual progress is derived from document positions,
-  // so reversing direction reverses the transition without a queued animation.
-  const progress = document.querySelector('.reading-progress');
-  const sections = [...document.querySelectorAll('#about,#projects,#life')];
-  const motionNodes = [...document.querySelectorAll('.hero-grid h1,.hero-side,.about h2,.about-copy,.section-label,.project,.album-board,.closing p')];
-  const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));
-  let frame = 0, measurements = [];
-  function measureMotion() {
-    // Clear translations before measuring to prevent feedback into the geometry.
-    motionNodes.forEach(node => {node.style.removeProperty('translate');});
-    measurements = motionNodes.map(node => {
-      const rect = node.getBoundingClientRect();
-      return {node, top: rect.top + scrollY, height: rect.height};
-    });
-    requestScroll();
+  // A quiet digital object: pointer response on mouse devices, two layouts for
+  // everyone. Reduced-motion users retain the control without interpolation.
+  const signal = document.querySelector('.signal-art');
+  const signalButton = document.querySelector('.signal-switch');
+  const finePointer = matchMedia('(hover: hover) and (pointer: fine)');
+  function switchGraphic() {
+    const grid = signal.dataset.layout !== 'grid';
+    signal.dataset.layout = grid ? 'grid' : 'orbit';
+    signalButton.setAttribute('aria-pressed', String(grid));
+    signal.setAttribute('aria-pressed', String(grid));
   }
+  signalButton.addEventListener('click', switchGraphic);
+  signal.addEventListener('click', switchGraphic);
+  function resetSignal() {
+    signal.style.removeProperty('--pointer-x');
+    signal.style.removeProperty('--pointer-y');
+  }
+  signal.addEventListener('pointermove', event => {
+    if (reduced.matches || !finePointer.matches || event.pointerType !== 'mouse') return;
+    const rect = signal.getBoundingClientRect();
+    signal.style.setProperty('--pointer-x', `${(event.clientX - rect.left - rect.width / 2) / rect.width * 22}deg`);
+    signal.style.setProperty('--pointer-y', `${-(event.clientY - rect.top - rect.height / 2) / rect.height * 18}deg`);
+  });
+  signal.addEventListener('pointerleave', resetSignal);
+  reduced.addEventListener('change', resetSignal);
+
+  const progress = document.querySelector('.reading-progress');
+  const sections = [...document.querySelectorAll('#projects,#about,#life,#contact')];
+  const navLinks = [...document.querySelectorAll('header nav a[href^="#"]')];
+  let scrollFrame = 0;
   function updateScroll() {
-    frame = 0;
-    const vh = innerHeight, y = scrollY;
-    const height = document.documentElement.scrollHeight - vh;
-    progress.style.transform = `scaleX(${height > 0 ? clamp(y / height) : 0})`;
-    const active = sections.filter(section => section.getBoundingClientRect().top <= vh * .3).at(-1);
-    document.querySelectorAll('header nav a[href^="#"]').forEach(link => {
-      if (active && link.hash === `#${active.id}`) link.setAttribute('aria-current','location');
+    scrollFrame = 0;
+    const total = document.documentElement.scrollHeight - innerHeight;
+    progress.style.transform = `scaleX(${total > 0 ? Math.max(0, Math.min(1, scrollY / total)) : 0})`;
+    const active = sections.filter(section => section.getBoundingClientRect().top <= innerHeight * .35).at(-1);
+    navLinks.forEach(link => {
+      if (active && link.hash === `#${active.id}`) link.setAttribute('aria-current', 'location');
       else link.removeAttribute('aria-current');
     });
-    measurements.forEach(({node, top, height}) => {
-      if (reduced.matches) {node.style.removeProperty('translate');node.style.removeProperty('opacity');return;}
-      const t = top - y;
-      const entering = clamp((t - vh * .58) / (vh * .42));
-      const leaving = clamp((-t - height * .55) / (vh * .65));
-      // Ease the edge of each chapter; keep the reading area fully opaque.
-      const ease = x => x * x * (3 - 2 * x);
-      const e = ease(entering), l = ease(leaving);
-      const travel = mobile.matches ? 24 : 58;
-      node.style.translate = `0 ${(e - l) * travel}px`;
-      node.style.opacity = String(1 - .65 * e - .4 * l);
-    });
-    if (!reduced.matches) {
-      document.querySelector('.hero-grid h1').style.translate = `0 ${-Math.min(y, vh) * .10}px`;
-      board.style.setProperty('--wall-travel', `${clamp((board.getBoundingClientRect().top - vh * .35) / vh, -1, 1) * 26}px`);
-    } else board.style.removeProperty('--wall-travel');
   }
-  function requestScroll() {if (!frame) frame = requestAnimationFrame(updateScroll);}
-  addEventListener('scroll', requestScroll, {passive:true});
-  addEventListener('resize', measureMotion);
-  reduced.addEventListener('change', measureMotion);
-  // Expanding project notes and switching language both change chapter geometry.
-  const geometry = new ResizeObserver(measureMotion);
-  document.querySelectorAll('main > section').forEach(section => geometry.observe(section));
-  document.querySelectorAll('.project details').forEach(details => details.addEventListener('toggle', measureMotion));
-  document.fonts.ready.then(measureMotion);
-  measureMotion();
+  function requestScroll() {if (!scrollFrame) scrollFrame = requestAnimationFrame(updateScroll);}
+  addEventListener('scroll', requestScroll, {passive: true});
+  addEventListener('resize', requestScroll);
+  const geometry = new ResizeObserver(requestScroll);
+  geometry.observe(document.querySelector('main'));
+  requestScroll();
+
+  // Reveal once, with no fading while reading or scrolling back up. Hash targets
+  // and keyboard focus are always immediately visible.
+  if ('IntersectionObserver' in window && !reduced.matches) {
+    const nodes = [...document.querySelectorAll('.section-label,.project,.about-grid,.contact-grid')];
+    const reveal = node => {
+      node.classList.add('reveal-visible');
+      node.classList.remove('reveal-pending');
+      observer.unobserve(node);
+    };
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {if (entry.isIntersecting) reveal(entry.target);});
+    }, {rootMargin: '0px 0px -24px 0px', threshold: 0});
+    nodes.forEach(node => {
+      if (node.getBoundingClientRect().top < innerHeight) return;
+      node.classList.add('reveal-pending', 'reveal-ready');
+      observer.observe(node);
+      node.addEventListener('focusin', () => reveal(node));
+    });
+    function revealHash() {
+      const target = document.getElementById(location.hash.slice(1));
+      if (target) nodes.filter(node => target.contains(node) || node.contains(target)).forEach(reveal);
+    }
+    addEventListener('hashchange', revealHash);
+    revealHash();
+    reduced.addEventListener('change', () => {if (reduced.matches) nodes.forEach(reveal);});
+  }
 })();

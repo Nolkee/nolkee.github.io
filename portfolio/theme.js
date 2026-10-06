@@ -6,7 +6,7 @@
     button.setAttribute('aria-pressed', String(dark));
     button.setAttribute('aria-label', dark ? '切换浅色 / Switch to light' : '切换深色 / Switch to dark');
     button.title = dark ? '切换浅色 / Switch to light' : '切换深色 / Switch to dark';
-    document.querySelector('meta[name="theme-color"]').content = dark ? '#15171b' : '#fafbfc';
+    document.querySelector('meta[name="theme-color"]').content = dark ? '#171916' : '#f6f5f1';
   }
   setTheme(root.dataset.theme === 'dark');
   button.addEventListener('click', () => {

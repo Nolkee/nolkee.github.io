@@ -31,3 +31,5 @@ Project descriptions were checked against the public repositories on 2026-10-06:
 Project artwork is a method or architecture illustration, rather than a product screenshot or benchmark chart. The music section preserves the existing selections, local audio and platform links.
 
 The public contact address is `jiabinyy [at] outlook [dot] com`.
+
+Updated on 2026-11-05: added a bilingual personal-keywords section and featured [REA PR #8956](https://github.com/morluto/rea/pull/8956), verified merged on that date. Contribution scope and validation counts come from the PR description.

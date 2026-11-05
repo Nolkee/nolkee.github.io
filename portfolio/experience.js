@@ -260,6 +260,33 @@
   signal.addEventListener('pointerleave', resetSignal);
   reduced.addEventListener('change', resetSignal);
 
+  // Touch screens have no hover: animate only visible project illustrations.
+  // No touch handlers, so vertical scrolling and project links stay native.
+  const touchMotion = matchMedia('(hover: none), (pointer: coarse)');
+  const projectVisuals = [...document.querySelectorAll('.project-visual')];
+  const visibleVisuals = new Set();
+  function syncProjectMotion() {
+    const enabled = !reduced.matches && !document.hidden;
+    projectVisuals.forEach(visual => {
+      const active = enabled && visibleVisuals.has(visual);
+      visual.classList.toggle('is-project-animated', active);
+      visual.classList.toggle('is-touch-animated', active && touchMotion.matches);
+    });
+  }
+  if ('IntersectionObserver' in window) {
+    const projectObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) visibleVisuals.add(entry.target);
+        else visibleVisuals.delete(entry.target);
+      });
+      syncProjectMotion();
+    }, {threshold: 0});
+    projectVisuals.forEach(visual => projectObserver.observe(visual));
+    touchMotion.addEventListener('change', syncProjectMotion);
+    reduced.addEventListener('change', syncProjectMotion);
+    document.addEventListener('visibilitychange', syncProjectMotion);
+  }
+
   const progress = document.querySelector('.reading-progress');
   const sections = [...document.querySelectorAll('#projects,#about,#life,#contact')];
   const navLinks = [...document.querySelectorAll('header nav a[href^="#"]')];

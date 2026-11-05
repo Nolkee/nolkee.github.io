@@ -33,3 +33,5 @@ Project artwork is a method or architecture illustration, rather than a product 
 The public contact address is `jiabinyy [at] outlook [dot] com`.
 
 Updated on 2026-11-05: added a bilingual personal-keywords section and featured [REA PR #8956](https://github.com/morluto/rea/pull/8956), verified merged on that date. Contribution scope and validation counts come from the PR description.
+
+Project illustrations animate automatically on touch devices while visible, pause off screen and respect reduced-motion preferences. The REA illustration demonstrates valid and out-of-range image references on both desktop and mobile.

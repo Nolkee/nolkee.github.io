@@ -531,8 +531,6 @@ footer .mono {margin-left: auto; color: var(--muted); font-size: 8px}
 .rea-visual {background: var(--paper); min-height: 440px; display: flex; flex-direction: column; justify-content: space-between; gap: 28px; border: 1px solid var(--line)}
 .rea-mark {font: clamp(48px,7vw,86px)/1.2 monospace; color: var(--muted); letter-spacing: -.1em; padding: 24px 0}
 .rea-mark span {color: var(--blue); letter-spacing: -.08em; margin-inline: 8px}
-.rea-flow {display: flex; flex-wrap: wrap; align-items: center; gap: 12px; font-size: 9px; color: var(--muted)}
-.rea-flow span:nth-child(3) {color: var(--blue); border: 1px solid var(--blue); padding: 10px}
 .rea-merged {color: var(--blue); font-size: 10px; line-height: 1.8; text-align: right}
 @media(max-width:700px) {
  .identity-grid {grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 22px}
@@ -542,4 +540,85 @@ footer .mono {margin-left: auto; color: var(--muted); font-size: 8px}
  .rea-visual {min-height: 330px}
  .rea-mark {font-size: 66px; padding: 8px 0}
  .rea-feature {margin-bottom: 32px}
+}
+
+/* Touch illustrations move quietly while visible; off-screen work is paused. */
+@media (hover: none), (pointer: coarse) {
+  @media (prefers-reduced-motion: no-preference) {
+    .project-visual .rea-mark {animation: touch-rea-breathe 5s ease-in-out infinite; animation-play-state: paused}
+    .project-visual .field-low {animation: touch-image-low 5s ease-in-out infinite; animation-play-state: paused}
+    .project-visual .field-light {animation: touch-image-light 5s ease-in-out infinite; animation-play-state: paused}
+    .project-visual .bridge-path svg {animation: touch-bridge 5s ease-in-out infinite; animation-play-state: paused}
+    .project-visual .route-flow {animation: touch-route 4s linear infinite; animation-play-state: paused}
+    .project-visual .flow-b {animation-delay: -2s}
+    .project-visual .module-back {animation: touch-card-back 5s ease-in-out infinite; animation-play-state: paused}
+    .project-visual .module-middle {animation: touch-card-middle 5s ease-in-out infinite; animation-play-state: paused}
+    .project-visual.is-touch-animated :is(.rea-mark,.field-low,.field-light,.bridge-path svg,.route-flow,.module-back,.module-middle) {animation-play-state: running}
+  }
+}
+@keyframes touch-rea-breathe {
+  0%,100% {transform: translateY(0); opacity: 1}
+  50% {transform: translateY(-4px); opacity: .8}
+}
+@keyframes touch-image-low {
+  0%,100% {transform: translate(0,0) rotate(0)}
+  50% {transform: translate(-3px,3px) rotate(-2deg)}
+}
+@keyframes touch-image-light {
+  0%,100% {transform: translate(0,0) rotate(0)}
+  50% {transform: translate(3px,-4px) rotate(2deg)}
+}
+@keyframes touch-bridge {
+  0%,100% {transform: scaleY(1)}
+  50% {transform: scaleY(1.1)}
+}
+@keyframes touch-route {
+  0% {stroke-dashoffset: 100; opacity: 0}
+  15%,85% {opacity: .75}
+  100% {stroke-dashoffset: 0; opacity: 0}
+}
+@keyframes touch-card-back {
+  0%,100% {transform: translate(24px,6px) rotate(8deg)}
+  50% {transform: translate(29px,1px) rotate(11deg)}
+}
+@keyframes touch-card-middle {
+  0%,100% {transform: translate(-10px,22px) rotate(-8deg)}
+  50% {transform: translate(-15px,24px) rotate(-10deg)}
+}
+
+/* A small, illustrative example of the actual image-reference bounds check. */
+.rea-validation {border-block: 1px solid var(--line); padding: 16px 0; width: 100%}
+.rea-validation-head,.rea-validation-foot {display: flex; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 8px; line-height: 1.7}
+.rea-check-row {display: grid; grid-template-columns: 82px minmax(40px,1fr) 82px; gap: 12px; align-items: center; margin-block: 22px; color: var(--blue)}
+.rea-check-row code {font-size: 12px; color: var(--ink)}
+.rea-check-track {height: 24px; position: relative; display: flex; align-items: center}
+.rea-check-track::before {content: ''; width: 100%; border-top: 1px solid var(--line)}
+.rea-check-track i {position: absolute; width: 6px; height: 6px; border-radius: 50%; background: currentColor; left: 0; animation: rea-pass 5s ease-in-out infinite; animation-play-state: paused}
+.rea-check-track b {position: absolute; left: 50%; top: 2px; background: var(--paper); padding-inline: 4px; font: 14px/20px monospace; transform: translateX(-50%)}
+.rea-check-result {font-size: 11px; display: flex; justify-content: space-between; gap: 6px}
+.rea-check-invalid {color: var(--muted)}
+.rea-check-invalid .rea-check-track i {animation-name: rea-reject; animation-delay: -.7s}
+.rea-check-invalid .rea-check-track::before {border-top-style: dashed}
+.rea-validation-foot {flex-wrap: wrap; font-size: 7px}
+@media(prefers-reduced-motion: no-preference) {
+ .is-project-animated .rea-check-track i {animation-play-state: running}
+}
+@keyframes rea-pass {
+ 0%,8% {left: 0; opacity: 0}
+ 16% {opacity: 1}
+ 72% {left: calc(100% - 6px); opacity: 1}
+ 84%,100% {left: calc(100% - 6px); opacity: 0}
+}
+@keyframes rea-reject {
+ 0%,8% {left: 0; opacity: 0}
+ 16% {opacity: 1}
+ 45%,60% {left: calc(50% - 3px); opacity: 1}
+ 76%,100% {left: calc(50% - 3px); opacity: 0}
+}
+@media(max-width:700px) {
+ .rea-visual {gap: 20px}
+ .rea-mark {font-size: 56px; padding: 0}
+ .rea-check-row {grid-template-columns: 72px minmax(35px,1fr) 68px; gap: 10px; margin-block: 18px}
+ .rea-check-row code {font-size: 11px}
+ .rea-check-result {font-size: 10px}
 }

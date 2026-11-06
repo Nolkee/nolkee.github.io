@@ -622,3 +622,59 @@ footer .mono {margin-left: auto; color: var(--muted); font-size: 8px}
  .rea-check-row code {font-size: 11px}
  .rea-check-result {font-size: 10px}
 }
+
+/* Read the contribution first, then explore its illustration and details. */
+.hero-actions {flex-wrap: wrap; gap: 22px}
+.hero-actions .text-link {min-height: 44px}
+.hero-actions .text-link>svg:first-child:not(.arrow-icon) {width: 16px; height: 16px}
+.project-heading {min-width: 0}
+.project-heading .project-lead {font-size: 15px; line-height: 1.85; margin-bottom: 14px; color: var(--ink)}
+.project-feature {grid-template-areas: "visual heading" "visual body"; gap: 0 56px; align-items: start}
+.project-feature>.project-heading {grid-area: heading; align-self: end}
+.project-feature>.project-visual {grid-area: visual; align-self: center}
+.project-feature>.project-copy {grid-area: body}
+.project-secondary {grid-template-rows: 315px auto 1fr}
+.project-secondary>.project-heading {grid-row: 2; padding-top: 26px}
+.project-secondary>.project-visual {grid-row: 1}
+.project-secondary>.project-copy {grid-row: 3; padding-top: 0}
+.project-heading h3 {margin-bottom: 14px}
+.project-secondary .project-heading h3 {font-size: 29px}
+@media(max-width:1100px) {
+ .project-feature {column-gap: 36px}
+ .project-secondary {grid-template-rows: 290px auto 1fr}
+}
+@media(min-width:701px) and (max-width:800px) {
+ .project-feature {grid-template-areas: "heading" "visual" "body"; row-gap: 20px}
+}
+@media(max-width:700px) {
+ .project-feature,.project-secondary {display: grid; grid-template-columns: minmax(0,1fr); grid-template-rows: auto auto auto; grid-template-areas: "heading" "visual" "body"; gap: 18px}
+ .project>.project-heading {grid-area: heading; padding-top: 0}
+ .project>.project-visual {grid-area: visual; width: 100%}
+ .project>.project-copy {grid-area: body; padding-top: 0}
+ .project-heading .project-category {margin-bottom: 10px}
+ .project-heading h3 {font-size: 29px; margin-bottom: 10px}
+ .project-heading .project-lead {font-size: 14px; margin: 0}
+ .rea-visual {min-height: 0; gap: 12px; padding: 18px}
+ .rea-mark {font-size: 40px; line-height: 1; padding: 0}
+ .rea-validation {padding-block: 10px}
+ .rea-check-row {margin-block: 12px}
+ .rea-visual .visual-bottom {margin-top: 0}
+ .rea-visual .visual-word {font-size: 20px}
+ .rea-check-result {font-size: 12px}
+ .rea-validation-head {font-size: 9px}
+ .research-visual {min-height: 300px}
+ .research-visual .visual-title {margin-top: 18px; font-size: 30px}
+ .project-secondary>.project-visual {min-height: 260px}
+ .about.section,.identity.section {padding-block: 44px}
+ .about-grid {gap: 24px}
+ .about h2 {font-size: 34px; margin-top: 16px}
+ .about-signature {margin-top: 18px}
+ .personality-link {margin-top: 14px}
+ .identity-grid li {padding-block: 20px}
+ .identity-grid h3 {margin-block: 12px}
+ .hero-actions {gap: 18px}
+}
+@media(max-width:360px) {
+ .contact-grid>* {min-width: 0}
+ .contact-email {font-size: 16px; gap: 10px; flex-wrap: wrap; max-width: 100%}
+}

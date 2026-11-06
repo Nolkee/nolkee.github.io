@@ -35,3 +35,5 @@ The public contact address is `jiabinyy [at] outlook [dot] com`.
 Updated on 2026-11-05: added a bilingual personal-keywords section and featured [REA PR #8956](https://github.com/morluto/rea/pull/8956), verified merged on that date. Contribution scope and validation counts come from the PR description.
 
 Project illustrations animate automatically on touch devices while visible, pause off screen and respect reduced-motion preferences. The REA illustration demonstrates valid and out-of-range image references on both desktop and mobile.
+
+Updated on 2026-11-06: added a primary homepage project link, shortened overlapping About copy, and placed project headings before illustrations in document/mobile order. Desktop keeps its two-column featured layout. Mobile illustrations are more compact; the 320px contact layout also wraps safely.

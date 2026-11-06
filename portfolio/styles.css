@@ -689,3 +689,6 @@ footer .mono {margin-left: auto; color: var(--muted); font-size: 8px}
 .note-card a span:last-child {transition:transform .2s}
 .note-card a:hover span:last-child {transform:translate(2px,-2px)}
 @media(max-width:700px) {.notes-grid {grid-template-columns:1fr;gap:22px}.note-card h3 {font-size:19px;margin:14px 0 8px}.note-card p {margin-bottom:8px}}
+@media(max-width:700px) {
+ .identity .section-label>p {max-width:none;white-space:nowrap;font-size:clamp(10px,2.8vw,11px);letter-spacing:-.04em}
+}
